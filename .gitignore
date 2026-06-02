@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+
+# Tests（含固件二进制，不上传）
+tests/
+
+# AI agent 辅助文件
+CLAUDE.md
+.claude/

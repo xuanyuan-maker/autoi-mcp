@@ -1,0 +1,49 @@
+{
+  "system":    {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "popen":     {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "execve":    {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "execle":    {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "execlp":    {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "execvp":    {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "execvpe":   {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+  "do_system": {"vuln_type": "cmd_injection",    "category": "rce",     "score": 30},
+
+  "gets":      {"vuln_type": "stack_overflow",   "category": "memory",  "score": 25},
+  "strcpy":    {"vuln_type": "stack_overflow",   "category": "memory",  "score": 25},
+  "strcat":    {"vuln_type": "stack_overflow",   "category": "memory",  "score": 20},
+  "wcscpy":    {"vuln_type": "stack_overflow",   "category": "memory",  "score": 25},
+  "wcscat":    {"vuln_type": "stack_overflow",   "category": "memory",  "score": 20},
+
+  "sprintf":   {"vuln_type": "stack_overflow",   "category": "memory",  "score": 25},
+  "vsprintf":  {"vuln_type": "stack_overflow",   "category": "memory",  "score": 25},
+  "sscanf":    {"vuln_type": "stack_overflow",   "category": "memory",  "score": 15},
+
+  "printf":    {"vuln_type": "format_string",    "category": "memory",  "score": 15},
+  "fprintf":   {"vuln_type": "format_string",    "category": "memory",  "score": 15},
+  "snprintf":  {"vuln_type": "format_string",    "category": "memory",  "score": 10},
+  "vprintf":   {"vuln_type": "format_string",    "category": "memory",  "score": 15},
+  "vfprintf":  {"vuln_type": "format_string",    "category": "memory",  "score": 15},
+  "syslog":    {"vuln_type": "format_string",    "category": "memory",  "score": 10},
+
+  "memcpy":    {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 20},
+  "memmove":   {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 15},
+  "bcopy":     {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 15},
+
+  "read":      {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 15},
+  "recv":      {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 15},
+  "recvfrom":  {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 15},
+  "fread":     {"vuln_type": "buffer_overflow",  "category": "memory",  "score": 10},
+
+  "fopen":     {"vuln_type": "path_traversal",   "category": "fs",      "score": 10},
+  "open":      {"vuln_type": "path_traversal",   "category": "fs",      "score": 10},
+  "opendir":   {"vuln_type": "path_traversal",   "category": "fs",      "score": 5},
+  "access":    {"vuln_type": "path_traversal",   "category": "fs",      "score": 5},
+  "stat":      {"vuln_type": "path_traversal",   "category": "fs",      "score": 5},
+  "rename":    {"vuln_type": "path_traversal",   "category": "fs",      "score": 5},
+  "unlink":    {"vuln_type": "path_traversal",   "category": "fs",      "score": 5},
+
+  "malloc":    {"vuln_type": "integer_overflow", "category": "memory",  "score": 5},
+  "calloc":    {"vuln_type": "integer_overflow", "category": "memory",  "score": 5},
+  "realloc":   {"vuln_type": "integer_overflow", "category": "memory",  "score": 5},
+  "alloca":    {"vuln_type": "integer_overflow", "category": "memory",  "score": 5}
+}

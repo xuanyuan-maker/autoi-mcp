@@ -1,0 +1,22 @@
+[
+  "cgi_param",
+  "getenv",
+  "fgets",
+  "fread",
+  "fgetc",
+  "getc",
+  "read",
+  "recv",
+  "recvfrom",
+  "recvmsg",
+  "scanf",
+  "__isoc99_scanf",
+  "fscanf",
+  "sscanf",
+  "getline",
+  "gets",
+  "readdir",
+  "readlink",
+  "getopt",
+  "getopt_long"
+]
