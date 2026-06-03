@@ -1,0 +1,28 @@
+{
+    "_comment": "Risk scoring weights for IoT firmware binary auditing — edit without touching code.",
+  
+    "security": {
+      "nx_disabled": 30,
+      "canary_disabled": 20,
+      "pie_disabled": 15,
+      "relro_disabled": 10,
+      "relro_partial": 5
+    },
+  
+    "patterns": {
+      "cgi_handler": 10,
+      "auth_symbol": 5,
+      "rpath_set": 5,
+      "runpath_set": 5
+    },
+  
+    "source_bonus": {
+      "has_sources_and_sinks": 10
+    },
+  
+    "thresholds": {
+      "high": 50,
+      "medium": 30
+    }
+  } 
+
