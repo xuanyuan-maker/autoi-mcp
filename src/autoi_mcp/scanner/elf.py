@@ -16,8 +16,9 @@ from ..models.binary import (
 # ============================================================
 
 def _data_path(filename: str) -> str:
-    """从项目根目录的 data/ 下读取 JSON 文件。"""
-    return str(Path(__file__).parent.parent.parent.parent / "data" / filename)
+    """返回数据文件的路径字符串，源码和 pip install 均可用。"""
+    import importlib.resources
+    return str(importlib.resources.files("autoi_mcp.data").joinpath(filename))
 
 
 def load_sinks(path: str | None = None) -> dict:
@@ -180,8 +181,7 @@ def match_rules(
 
 def _load_system_filters() -> dict:
     """从 data/system_filters.json 读取系统库/二进制过滤规则。"""
-    path = Path(__file__).parent.parent.parent.parent / "data" / "system_filters.json"
-    with open(path) as f:
+    with open(_data_path("system_filters.json")) as f:
         return json.load(f)
 
 
@@ -318,12 +318,10 @@ def scan_directory(
     # 风险文件（如 MIPS big-endian） → 独立子进程解析（隔离段错误）
     if risky_files:
         import subprocess as sp
-        _src_root = str(Path(__file__).parent.parent.parent)
         for fpath in risky_files:
             try:
                 code = f'''
 import sys, json
-sys.path.insert(0, {_src_root!r})
 from autoi_mcp.scanner.elf import parse_elf, match_rules
 try:
     info = parse_elf({fpath!r})

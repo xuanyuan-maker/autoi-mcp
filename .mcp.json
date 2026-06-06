@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "autoi-mcp": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "autoi_mcp.server"]
+    }
+  }
+}

@@ -21,8 +21,9 @@ from ..models.risk import BatchRiskReport, RiskReport, SinkFinding
 # ============================================================
 
 def _data_path(filename: str) -> str:
-    """从项目根目录的 data/ 下读取 JSON 文件。"""
-    return str(Path(__file__).parent.parent.parent.parent / "data" / filename)
+    """返回数据文件的路径字符串，源码和 pip install 均可用。"""
+    import importlib.resources
+    return str(importlib.resources.files("autoi_mcp.data").joinpath(filename))
 
 
 def _load_sinks(path: str | None = None) -> dict:
