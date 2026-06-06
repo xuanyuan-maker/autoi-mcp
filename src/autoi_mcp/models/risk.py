@@ -2,24 +2,24 @@
 
 from pydantic import BaseModel
 
-class SinkFinding (BaseModel):
+class SinkFinding(BaseModel):
     """单个危险函数发现"""
     name: str           # 函数名，比如 "system"
     vuln_type: str      # 漏洞类型： cmd_injection | stack_overflow | format_string | buffer_overflow | path_traversal | integer_overflow
-    categoty: str       # 分类： rce | memory | fs
-    source: int         # 分数
+    category: str       # 分类： rce | memory | fs
+    score: int          # 分数
 
 class RiskReport(BaseModel):
     """单个二进制的风险评估报告"""
     path: str
-    total_source: int
-    level: str          # "High" | "Medium" | "Low"
+    total_score: int
+    level: str          # "high" | "medium" | "low"
 
     # 分类得分
-    security_source: int
-    sink_source: int
-    source_source: int
-    pattern_source: int
+    security_score: int
+    sink_score: int
+    source_score: int
+    pattern_score: int
 
     # 详情
     security_flags: list[str]       # e.g. ["NX disableed", "No stack canary"]
@@ -27,7 +27,7 @@ class RiskReport(BaseModel):
     sources_found: list[str]        # e.g. ["getenv". "recv"]
     patterns_found: list[str]       # e.g. ["CGI handler detected", "RPATH ser: /lib"]
 
-    recommandation: str             # 人类可读建议
+    recommendation: str             # 人类可读建议
 
 class BatchRiskReport(BaseModel):
     """批量风险评估报告，按 High / medium / low 分组，各组按分数降序"""

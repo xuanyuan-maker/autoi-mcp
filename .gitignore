@@ -4,6 +4,12 @@ __pycache__/
 *.egg-info/
 .venv/
 
+# Python 构建产物
+dist/
+build/
+*.whl
+
+
 # Tests（含固件二进制，不上传）
 tests/
 
