@@ -19,7 +19,29 @@ class FirmwareAuditConfig:
     risk_medium_threshold: int = 30  # >= 此分中风险
 
     # --- 并发 ---
-    max_workers: int = 4             # 批量扫描并发数
+    max_workers: int = 4
+
+    # --- 系统库过滤 ---
+    skip_system_libs: bool = True
+    system_lib_patterns: tuple[str, ...] = (
+        "*/lib/lib*.so*",          # libc, libpthread, libm, libdl, libgcc_s, libcrypt ...
+        "*/lib/ld-*.so*",          # ld-linux, ld-uClibc ...
+        "*/lib/lib*_nonshared.a",  # 静态存根
+        "*/usr/lib/lib*.so*",      # /usr/lib 下的标准库
+    )
+
+    # --- 系统二进制过滤 ---
+    skip_system_binaries: bool = True
+    system_binary_patterns: tuple[str, ...] = (
+        "*/bin/busybox",
+        "*/bin/ash",
+        "*/bin/sh",
+        "*/bin/bash",
+        "*/init",
+        "*/sbin/init",
+        "*/linuxrc",
+        "*/.libs/*",               # autotools 中间产物
+    )
 
     def detect_ida_path(self) -> Path | None:
         """跨平台探测 IDA 安装路径。"""

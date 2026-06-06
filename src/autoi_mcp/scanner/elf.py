@@ -58,8 +58,11 @@ def identify_elf(filepath: str) -> bool:
     Returns:
         True 表示 ELF 文件，False 表示非 ELF
     """
-    with open(filepath, "rb") as f:
-        return f.read(4) == b"\x7fELF"
+    try:
+        with open(filepath, "rb") as f:
+            return f.read(4) == b"\x7fELF"
+    except (OSError, PermissionError):
+        return False
 
 
 def parse_elf(elf_path: str) -> BinaryInfo:
@@ -90,7 +93,7 @@ def parse_elf(elf_path: str) -> BinaryInfo:
         ),
     )
 
-    # Sections
+    # 节表
     sections = []
     for sec in elf.sections:
         if sec is None:
@@ -104,7 +107,7 @@ def parse_elf(elf_path: str) -> BinaryInfo:
             size=sec.header.sh_size, perm=perm,
         ))
 
-    # Segments
+    # 段表
     segments = []
     for seg in elf.segments:
         segments.append(SegmentInfo(
@@ -113,7 +116,7 @@ def parse_elf(elf_path: str) -> BinaryInfo:
             align=seg.header.p_align,
         ))
 
-    # Security
+    # 安全缓解措施
     security = SecurityInfo(
         relro=elf.relro if elf.relro else "none",
         canary=elf.canary,
@@ -177,11 +180,11 @@ def scan_directory(
     """批量扫描目录下的 ELF 文件，并行解析 + 规则匹配。
 
     Args:
-        dirpath: 要扫描的目录路径
-        sinks: 危险函数字典，None 则自动从 data/ 加载
-        sources: 输入源列表，None 则自动加载
-        recursive: 是否递归子目录
-        max_workers: 并行线程数
+        - dirpath: 要扫描的目录路径
+        - sinks: 危险函数字典，None 则自动从 data/ 加载
+        - sources: 输入源列表，None 则自动加载
+        - recursive: 是否递归子目录
+        - max_workers: 并行线程数
 
     Returns:
         ELFSummary — 含扫描总数、ELF 数量、解析结果、错误列表

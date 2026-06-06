@@ -30,7 +30,7 @@ def parse_elf(elf_path: str) -> dict[str, Any]:
     except Exception as e:
         return {"error": f"Failed to parse ELF: {str(e)}"}
 
-    # === ELF Header ===
+    # === ELF 文件头 ===
     file_header = {
         "arch": elf.arch,
         "bits": elf.bits,
@@ -39,7 +39,7 @@ def parse_elf(elf_path: str) -> dict[str, Any]:
         "elf_type": "DYN" if elf.elftype == 'DYN' else ("EXEC" if elf.elftype == 'EXEC' else elf.elftype), 
     }
 
-    # === Section Headers ===
+    # === 节表 ===
     sections = []
     for sec in elf.sections:
         if sec is None:
@@ -60,7 +60,7 @@ def parse_elf(elf_path: str) -> dict[str, Any]:
             "perm": perm,
         })
 
-    # === Program Headers ===
+    # === 段表 ===
     segments = []
     for seg in elf.segments:
         segments.append({
@@ -71,10 +71,10 @@ def parse_elf(elf_path: str) -> dict[str, Any]:
             "align": seg.header.p_align,
         })
 
-    # === symbols table ===
+    # === 符号表 ===
     symbols = dict(elf.symbols)
 
-    # === protection ===
+    # === 安全缓解措施 ===
     security = {
         "relro": elf.relro,
         "canary": elf.canary,
