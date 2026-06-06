@@ -30,11 +30,16 @@ class RiskReport(BaseModel):
     recommendation: str             # 人类可读建议
 
 class BatchRiskReport(BaseModel):
-    """批量风险评估报告，按 High / medium / low 分组，各组按分数降序"""
+    """批量风险评估报告，按 High / medium / low 分组，各组按分数降序。
+
+    符号表被 strip 的 ELF 进入 no_symbols_risk，不参与高/中/低分档，
+    但仍建议进入 Tier 2 IDA 深度分析。
+    """
     total: int
     high_risk: list[RiskReport]
     medium_risk: list[RiskReport]
     low_risk: list[RiskReport]
+    no_symbols_risk: list[RiskReport] = []
 
     @property
     def high_risk_count(self) -> int:
@@ -47,4 +52,8 @@ class BatchRiskReport(BaseModel):
     @property
     def low_risk_count(self) -> int:
         return len(self.low_risk)
+
+    @property
+    def no_symbols_count(self) -> int:
+        return len(self.no_symbols_risk)
 

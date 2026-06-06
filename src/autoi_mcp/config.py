@@ -1,56 +1,29 @@
-"""全局配置。"""
+"""运行配置加载器 — 从 data/config.json 读取 IDA 路径、并发上限等。"""
 
-from dataclasses import dataclass, field
+import json
 from pathlib import Path
+from typing import Any
 
 
-@dataclass
-class FirmwareAuditConfig:
-    # --- IDA（后期用）---
-    ida_path: str | None = None      # IDA 安装路径，None 则自动探测
-    ida_timeout: int = 300           # 单个文件超时（秒）
+_CONFIG_PATH = Path(__file__).parent.parent.parent / "data" / "config.json"
 
-    # --- 默认目录 ---
-    default_cgi_dir: str = "./cgi-bin"
-    default_output_dir: str = "./audit_output"
 
-    # --- 风险阈值 ---
-    risk_high_threshold: int = 50    # >= 此分高风险，进 IDA
-    risk_medium_threshold: int = 30  # >= 此分中风险
+def load() -> dict[str, Any]:
+    """读取完整配置字典。"""
+    with open(_CONFIG_PATH) as f:
+        return json.load(f)
 
-    # --- 并发 ---
-    max_workers: int = 4
 
-    # --- 系统库过滤 ---
-    skip_system_libs: bool = True
-    system_lib_patterns: tuple[str, ...] = (
-        "*/lib/lib*.so*",          # libc, libpthread, libm, libdl, libgcc_s, libcrypt ...
-        "*/lib/ld-*.so*",          # ld-linux, ld-uClibc ...
-        "*/lib/lib*_nonshared.a",  # 静态存根
-        "*/usr/lib/lib*.so*",      # /usr/lib 下的标准库
-    )
+def get_ida_path() -> str | None:
+    """返回 IDA 安装路径，null 表示自动探测。"""
+    return load()["ida"]["path"]
 
-    # --- 系统二进制过滤 ---
-    skip_system_binaries: bool = True
-    system_binary_patterns: tuple[str, ...] = (
-        "*/bin/busybox",
-        "*/bin/ash",
-        "*/bin/sh",
-        "*/bin/bash",
-        "*/init",
-        "*/sbin/init",
-        "*/linuxrc",
-        "*/.libs/*",               # autotools 中间产物
-    )
 
-    def detect_ida_path(self) -> Path | None:
-        """跨平台探测 IDA 安装路径。"""
-        import shutil
-        candidates = [
-            "idat64", "idat", "ida64", "ida",
-        ]
-        for name in candidates:
-            found = shutil.which(name)
-            if found:
-                return Path(found)
-        return None
+def get_ida_timeout() -> int:
+    """返回单个文件 IDA 分析超时秒数。"""
+    return load()["ida"]["timeout"]
+
+
+def get_max_workers() -> int:
+    """返回批量扫描/分析的最大并行数。"""
+    return load()["concurrency"]["max_workers"]

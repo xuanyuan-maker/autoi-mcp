@@ -1,0 +1,23 @@
+{
+    "_comment": "系统库/二进制过滤规则 — 匹配到的 ELF 跳过风险评分。",
+
+    "skip_system_libs": true,
+    "system_lib_patterns": [
+        "*/lib/lib*.so*",
+        "*/lib/ld-*.so*",
+        "*/lib/lib*_nonshared.a",
+        "*/usr/lib/lib*.so*"
+    ],
+
+    "skip_system_binaries": true,
+    "system_binary_patterns": [
+        "*/bin/busybox",
+        "*/bin/ash",
+        "*/bin/sh",
+        "*/bin/bash",
+        "*/init",
+        "*/sbin/init",
+        "*/linuxrc",
+        "*/.libs/*"
+    ]
+}

@@ -43,7 +43,8 @@ class BinaryInfo(BaseModel):
 
 class ELFSummary(BaseModel):
     total_scanned: int              # 总共扫描的文件数
-    total_elf: int                  # 扫描的 ELF 文件数
+    total_elf: int                  # 成功解析的 ELF 文件数
+    skipped_system: int = 0         # 被系统过滤规则跳过的文件数（symlink/busybox/系统库）
     binaries: list[BinaryInfo]
     errors: list[dict]
 

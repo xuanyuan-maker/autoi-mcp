@@ -118,8 +118,22 @@ class RiskScorer:
         )
 
     def score_batch(self, binaries: list[BinaryInfo]) -> BatchRiskReport:
-        """批量评分，系统库自动跳过，结果按高/中/低风险分组。"""
-        reports = [self.score_binary(b) for b in binaries]
+        """批量评分，系统库自动跳过。
+
+        符号表被 strip 的 ELF 进入 no_symbols_risk，
+        不参与高/中/低风险分档，但仍建议进入 Tier 2 IDA 深度分析。
+        """
+        # 分离无符号表的 ELF（被 strip，仅能做安全+模式评分）
+        with_syms: list[BinaryInfo] = []
+        no_syms: list[BinaryInfo] = []
+        for b in binaries:
+            if b.symbols:
+                with_syms.append(b)
+            else:
+                no_syms.append(b)
+
+        # 有符号表 → 正常评分分档
+        reports = [self.score_binary(b) for b in with_syms]
         reports = [r for r in reports if r is not None]
 
         high = sorted(
@@ -135,11 +149,28 @@ class RiskScorer:
             key=lambda r: r.total_score, reverse=True,
         )
 
+        # 无符号表 → 独立列表，级别标记为 "no_symbols"，建议 Tier 2
+        no_sym_reports: list[RiskReport] = []
+        for b in no_syms:
+            if self._is_system_lib(b.path):
+                continue
+            r = self.score_binary(b)
+            if r is not None:
+                r.level = "no_symbols"
+                r.recommendation = (
+                    f"Symbol table stripped (partial score={r.total_score}): "
+                    "Strongly recommend Tier 2 IDA deep analysis — "
+                    "no symbol-based sink/source matching possible in Tier 1."
+                )
+                no_sym_reports.append(r)
+        no_sym_reports.sort(key=lambda r: r.total_score, reverse=True)
+
         return BatchRiskReport(
-            total=len(reports),
+            total=len(reports) + len(no_sym_reports),
             high_risk=high,
             medium_risk=medium,
             low_risk=low,
+            no_symbols_risk=no_sym_reports,
         )
 
     def filter_high_risk(self, binaries: list[BinaryInfo]) -> list[RiskReport]:

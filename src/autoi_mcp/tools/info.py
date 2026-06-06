@@ -1,7 +1,7 @@
 """Tier 1 固件信息收集 — 一键扫描目录，返回完整 Tier 1 报告。"""
 
+from autoi_mcp import config
 from autoi_mcp.analysis.risk import RiskScorer
-from autoi_mcp.config import FirmwareAuditConfig
 from autoi_mcp.scanner.elf import scan_directory
 
 
@@ -11,38 +11,31 @@ def register(mcp):
     def scan_firmware(
         dirpath: str,
         recursive: bool = True,
-        max_workers: int = 4,
+        max_workers: int = config.get_max_workers(),
+        verbose: bool = False,
+        top_n: int = 20,
     ) -> dict:
-        """扫描固件目录下所有 ELF，解析 + 规则匹配 + 风险评分，一次性返回完整 Tier 1 报告。
+        """扫描固件目录下所有 ELF，解析 + 规则匹配 + 风险评分。
 
-        内部流程：
-        1. 遍历目录识别所有 ELF 文件
-        2. 并行解析每个 ELF（文件头、节/段表、符号表、checksec）
-        3. 符号 vs 危险函数/输入源规则交叉比对
-        4. RiskScorer 打分并分类为 high / medium / low
+        默认只返回统计摘要 + Top N 高风险详情，控制输出大小。
+        设置 verbose=True 返回全部明细。
 
         Args:
             dirpath: 固件解压后的根目录路径
             recursive: 是否递归子目录，默认 True
             max_workers: 并行线程数，默认 4
+            verbose: 是否输出全部明细，默认 False（仅摘要+Top N）
+            top_n: 非 verbose 模式下返回的高/中风险 Top N 数量，默认 20
         """
         # 1. 扫描 + 解析 + 规则匹配
         summary = scan_directory(
             dirpath, recursive=recursive, max_workers=max_workers
         )
 
-        # 2. 风险评分（系统库和系统二进制自动跳过）
-        config = FirmwareAuditConfig()
-        skip = ()
-        if config.skip_system_libs:
-            skip += config.system_lib_patterns
-        if config.skip_system_binaries:
-            skip += config.system_binary_patterns
-        scorer = RiskScorer(skip_patterns=skip)
+        # 2. 风险评分（系统库/二进制已在 scan_directory 中过滤跳过）
+        scorer = RiskScorer()
         batch = scorer.score_batch(summary.binaries)
-        skipped = summary.total_elf - batch.total
 
-        # 3. 格式化输出
         def _fmt(report):
             return {
                 "path": report.path,
@@ -58,11 +51,21 @@ def register(mcp):
                 "recommendation": report.recommendation,
             }
 
-        return {
+        def _fmt_short(report):
+            """精简格式：仅路径 + 评分 + 关键风险信号。"""
+            return {
+                "path": report.path,
+                "total_score": report.total_score,
+                "security_flags": report.security_flags,
+                "top_sinks": [s.name for s in report.sinks_found[:5]],
+            }
+
+        # 3. 构建返回结果
+        result: dict = {
             "scan_summary": {
                 "total_scanned": summary.total_scanned,
                 "total_elf": summary.total_elf,
-                "skipped_system_libs": skipped,
+                "skipped_system_libs": summary.skipped_system,
                 "total_errors": len(summary.errors),
             },
             "risk_summary": {
@@ -70,9 +73,27 @@ def register(mcp):
                 "high_risk": batch.high_risk_count,
                 "medium_risk": batch.medium_risk_count,
                 "low_risk": batch.low_risk_count,
+                "no_symbols": batch.no_symbols_count,
+                "_no_symbols_hint": "Symbol table stripped — Tier 2 IDA deep analysis recommended.",
             },
-            "high_risk": [_fmt(r) for r in batch.high_risk],
-            "medium_risk": [_fmt(r) for r in batch.medium_risk],
-            "low_risk": [_fmt(r) for r in batch.low_risk],
-            "errors": summary.errors,
         }
+
+        if verbose:
+            result["high_risk"] = [_fmt(r) for r in batch.high_risk]
+            result["medium_risk"] = [_fmt(r) for r in batch.medium_risk]
+            result["low_risk"] = [_fmt(r) for r in batch.low_risk]
+            result["no_symbols"] = [_fmt(r) for r in batch.no_symbols_risk]
+        else:
+            result["high_risk"] = [_fmt(r) for r in batch.high_risk[:top_n]]
+            result["medium_risk"] = [_fmt_short(r) for r in batch.medium_risk[:top_n]]
+            result["no_symbols"] = [_fmt_short(r) for r in batch.no_symbols_risk[:top_n]]
+            # low_risk 默认不输出明细，仅保留计数
+            if batch.high_risk_count > top_n:
+                result["_truncated"] = {
+                    "high_risk_showing": f"{min(top_n, batch.high_risk_count)}/{batch.high_risk_count}",
+                    "medium_risk_showing": f"{min(top_n, batch.medium_risk_count)}/{batch.medium_risk_count}",
+                    "hint": "Set verbose=True for full results, or increase top_n.",
+                }
+
+        result["errors"] = summary.errors
+        return result

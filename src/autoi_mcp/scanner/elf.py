@@ -1,8 +1,9 @@
 """ELF 二进制扫描 — 解析、识别、规则匹配、批量扫描。"""
 
+import fnmatch
 import os
 import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import sys
 from pathlib import Path
 from pwn import ELF, context
 
@@ -108,20 +109,27 @@ def parse_elf(elf_path: str) -> BinaryInfo:
         ))
 
     # 段表
+    # MIPS/ARM 等有架构特有 PT_* 类型（如 PT_MIPS_REGINFO=0x70000000），
+    # pwntools 的 P_TYPE 映射表中不存在，返回 int 而非 str → 统一转为字符串
     segments = []
     for seg in elf.segments:
+        p_type = seg.header.p_type
+        if isinstance(p_type, int):
+            p_type = f"PT_UNKNOWN_0x{p_type:08x}"
         segments.append(SegmentInfo(
-            type=seg.header.p_type, vaddr=seg.header.p_vaddr,
+            type=p_type, vaddr=seg.header.p_vaddr,
             memsz=seg.header.p_memsz, offset=seg.header.p_offset,
             align=seg.header.p_align,
         ))
 
     # 安全缓解措施
+    # MIPS 等架构没有 NX bit 概念（无 PT_GNU_STACK），pwntools 返回 None
+    # → None 视为 False（无法验证 NX 保护 = 无此保护）
     security = SecurityInfo(
         relro=elf.relro if elf.relro else "none",
-        canary=elf.canary,
-        nx=elf.nx,
-        pie=elf.pie,
+        canary=elf.canary if elf.canary is not None else False,
+        nx=elf.nx if elf.nx is not None else False,
+        pie=elf.pie if elf.pie is not None else False,
         rpath=elf.rpath if elf.rpath else None,
         runpath=elf.runpath if elf.runpath else None,
     )
@@ -167,6 +175,52 @@ def match_rules(
 
 
 # ============================================================
+# 系统过滤规则加载
+# ============================================================
+
+def _load_system_filters() -> dict:
+    """从 data/system_filters.json 读取系统库/二进制过滤规则。"""
+    path = Path(__file__).parent.parent.parent.parent / "data" / "system_filters.json"
+    with open(path) as f:
+        return json.load(f)
+
+
+def _should_skip(filepath: str, skip_patterns: tuple[str, ...]) -> bool:
+    """检查文件路径是否匹配任一跳过模式。
+
+    同时跳过符号链接（所有 busybox applet 都是 symlink）。
+    """
+    if os.path.islink(filepath):
+        return True
+    for pattern in skip_patterns:
+        if fnmatch.fnmatch(filepath, pattern):
+            return True
+    return False
+
+
+# ============================================================
+# 风险架构检测（pwntools 在某些 MIPS 变体上会段错误）
+# ============================================================
+
+def _is_risky_elf(filepath: str) -> bool:
+    """快速读取 ELF header 判断是否为 pwntools 高风险架构。
+
+    已知问题: pwntools 在 MIPS big-endian 上解析 GOT 时会 SIGSEGV。
+    """
+    try:
+        with open(filepath, "rb") as f:
+            hdr = f.read(20)
+            if hdr[:4] != b"\x7fELF":
+                return False
+            ei_data = hdr[5]          # 1=little, 2=big
+            byte_order = "little" if ei_data == 1 else "big"
+            e_machine = int.from_bytes(hdr[18:20], byte_order)
+            return ei_data == 2 and e_machine == 8  # big-endian MIPS
+    except OSError:
+        return False
+
+
+# ============================================================
 # 批量扫描
 # ============================================================
 
@@ -195,14 +249,26 @@ def scan_directory(
     if sources is None:
         sources = load_sources()
 
+    # 构建系统文件过滤模式（符号链接 + busybox + 系统库 + init）
+    filters = _load_system_filters()
+    skip_patterns: list[str] = []
+    if filters.get("skip_system_libs", True):
+        skip_patterns.extend(filters.get("system_lib_patterns", ()))
+    if filters.get("skip_system_binaries", True):
+        skip_patterns.extend(filters.get("system_binary_patterns", ()))
+
     # 收集 ELF 文件
     elf_files: list[str] = []
     non_elf = 0
+    skipped_system = 0
 
     if recursive:
         for root, dirs, files in os.walk(dirpath, followlinks=False):
             for name in files:
                 fpath = os.path.join(root, name)
+                if _should_skip(fpath, tuple(skip_patterns)):
+                    skipped_system += 1
+                    continue
                 if identify_elf(fpath):
                     elf_files.append(fpath)
                 else:
@@ -210,12 +276,24 @@ def scan_directory(
     else:
         with os.scandir(dirpath) as it:
             for entry in it:
-                if entry.is_file(follow_symlinks=False) and not entry.is_symlink():
+                if entry.is_file(follow_symlinks=False):
                     fpath = os.path.join(dirpath, entry.name)
+                    if _should_skip(fpath, tuple(skip_patterns)):
+                        skipped_system += 1
+                        continue
                     if identify_elf(fpath):
                         elf_files.append(fpath)
                     else:
                         non_elf += 1
+
+    # 拆分安全文件（线程）与风险文件（子进程隔离）
+    safe_files: list[str] = []
+    risky_files: list[str] = []
+    for f in elf_files:
+        if _is_risky_elf(f):
+            risky_files.append(f)
+        else:
+            safe_files.append(f)
 
     # 并行解析
     binaries: list[BinaryInfo] = []
@@ -229,14 +307,50 @@ def scan_directory(
         except Exception as e:
             errors.append({"file": fpath, "error": str(e)})
 
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = [pool.submit(process_one, f) for f in elf_files]
-        for _ in as_completed(futures):
-            pass
+    # 安全文件 → 线程池（低开销，大多数文件走这条路径）
+    if safe_files:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = [pool.submit(process_one, f) for f in safe_files]
+            for _ in as_completed(futures):
+                pass
+
+    # 风险文件（如 MIPS big-endian） → 独立子进程解析（隔离段错误）
+    if risky_files:
+        import subprocess as sp
+        _src_root = str(Path(__file__).parent.parent.parent)
+        for fpath in risky_files:
+            try:
+                code = f'''
+import sys, json
+sys.path.insert(0, {_src_root!r})
+from autoi_mcp.scanner.elf import parse_elf, match_rules
+try:
+    info = parse_elf({fpath!r})
+    info = match_rules(info, json.loads({json.dumps(sinks)!r}), json.loads({json.dumps(sources)!r}))
+    print("OK", json.dumps(info.model_dump()))
+except Exception as e:
+    print("ERR", json.dumps({{"file": {fpath!r}, "error": str(e)}}))
+'''
+                r = sp.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+                if r.returncode == 0 and r.stdout.startswith("OK "):
+                    from ..models.binary import BinaryInfo
+                    data = json.loads(r.stdout[3:])
+                    binaries.append(BinaryInfo.model_validate(data))
+                elif r.stdout.startswith("ERR "):
+                    errors.append(json.loads(r.stdout[4:]))
+                else:
+                    stderr = (r.stderr or "")[:200]
+                    errors.append({"file": fpath, "error": f"subprocess failed (rc={r.returncode}): {stderr}"})
+            except sp.TimeoutExpired:
+                errors.append({"file": fpath, "error": "subprocess timeout"})
+            except Exception as e:
+                errors.append({"file": fpath, "error": f"subprocess error: {e}"})
 
     return ELFSummary(
-        total_scanned=len(elf_files) + non_elf,
+        total_scanned=len(elf_files) + non_elf + skipped_system,
         total_elf=len(binaries),
+        skipped_system=skipped_system,
         binaries=binaries,
         errors=errors,
     )

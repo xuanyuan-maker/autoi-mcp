@@ -2,11 +2,12 @@
     "_comment": "Risk scoring weights for IoT firmware binary auditing — edit without touching code.",
   
     "security": {
-      "nx_disabled": 30,
-      "canary_disabled": 20,
-      "pie_disabled": 15,
-      "relro_disabled": 10,
-      "relro_partial": 5
+      "_comment": "IoT 固件安全缓解普遍缺失（MIPS 无 NX，嵌入式少开 canary/PIE），降低权重避免误报膨胀",
+      "nx_disabled": 5,
+      "canary_disabled": 5,
+      "pie_disabled": 5,
+      "relro_disabled": 5,
+      "relro_partial": 2
     },
   
     "patterns": {
