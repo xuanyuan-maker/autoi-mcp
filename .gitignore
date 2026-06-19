@@ -14,5 +14,6 @@ build/
 tests/
 
 # AI agent 辅助文件
+AGENTS.md
 CLAUDE.md
 .claude/

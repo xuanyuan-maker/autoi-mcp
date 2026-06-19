@@ -1,13 +1,11 @@
 {
     "_comment": "autoi-mcp 运行配置 — IDA 路径、并发控制等。",
-
     "ida": {
         "path": null,
         "_path_help": "IDA 安装路径，null 则自动探测 (idat64/idat/ida64/ida)",
         "timeout": 300,
         "_timeout_help": "单个文件 IDA 分析超时（秒）"
     },
-
     "concurrency": {
         "max_workers": 8,
         "_max_workers_help": "批量扫描/分析的最大并行数"

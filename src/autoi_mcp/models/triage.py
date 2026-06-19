@@ -29,7 +29,7 @@ class SourceSinkPath(BaseModel):
     source: str                     # 起始 source 函数名
     sink: str                       # 终止 sink 函数名
     path: dict[str, int]            # 途径函数
-    configence: str                 # 置信度
+    confidence: str                 # 置信度
 
 class TriageReport(BaseModel):
     """
@@ -41,7 +41,7 @@ class TriageReport(BaseModel):
     source_sink_path: list[SourceSinkPath] = []
 
     total_functions: int = 0
-    analyzed_funtions: int = 0
+    analyzed_functions: int = 0
     analyzed_time: float = 0.0
     error: str | None = None
 
