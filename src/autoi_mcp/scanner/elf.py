@@ -14,37 +14,9 @@ from ..models.binary import (
 # ============================================================
 # 规则加载
 # ============================================================
+# load_sinks / load_sources 已提取到 autoi_mcp.data.loader，此处保留别名以兼容旧 import。
 
-def _data_path(filename: str) -> str:
-    """返回数据文件的路径字符串，源码和 pip install 均可用。"""
-    import importlib.resources
-    return str(importlib.resources.files("autoi_mcp.data").joinpath(filename))
-
-
-def load_sinks(path: str | None = None) -> dict:
-    """加载危险函数字典。
-
-    Args:
-        path: JSON 文件路径，None 则使用默认 data/dangerous_sinks.json
-
-    Returns:
-        dict — 危险函数名到属性的映射
-    """
-    with open(path or _data_path("dangerous_sinks.json")) as f:
-        return json.load(f)
-
-
-def load_sources(path: str | None = None) -> list:
-    """加载 CGI 输入源列表。
-
-    Args:
-        path: JSON 文件路径，None 则使用默认 data/cgi_sources.json
-
-    Returns:
-        list[str] — 输入源函数名列表
-    """
-    with open(path or _data_path("cgi_sources.json")) as f:
-        return json.load(f)
+from autoi_mcp.data.loader import load_sinks, load_sources, load_system_filters
 
 
 # ============================================================
@@ -175,16 +147,6 @@ def match_rules(
     return binary
 
 
-# ============================================================
-# 系统过滤规则加载
-# ============================================================
-
-def _load_system_filters() -> dict:
-    """从 data/system_filters.json 读取系统库/二进制过滤规则。"""
-    with open(_data_path("system_filters.json")) as f:
-        return json.load(f)
-
-
 def _should_skip(filepath: str, skip_patterns: tuple[str, ...]) -> bool:
     """检查文件路径是否匹配任一跳过模式。
 
@@ -250,7 +212,7 @@ def scan_directory(
         sources = load_sources()
 
     # 构建系统文件过滤模式（符号链接 + busybox + 系统库 + init）
-    filters = _load_system_filters()
+    filters = load_system_filters()
     skip_patterns: list[str] = []
     if filters.get("skip_system_libs", True):
         skip_patterns.extend(filters.get("system_lib_patterns", ()))

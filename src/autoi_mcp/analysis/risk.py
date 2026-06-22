@@ -19,23 +19,9 @@ from ..models.risk import BatchRiskReport, RiskReport, SinkFinding
 # ============================================================
 # 数据加载
 # ============================================================
+# 已提取到 autoi_mcp.data.loader，此处保留别名以兼容旧 import。
 
-def _data_path(filename: str) -> str:
-    """返回数据文件的路径字符串，源码和 pip install 均可用。"""
-    import importlib.resources
-    return str(importlib.resources.files("autoi_mcp.data").joinpath(filename))
-
-
-def _load_sinks(path: str | None = None) -> dict:
-    """加载 dangerous_sinks.json。"""
-    with open(path or _data_path("dangerous_sinks.json")) as f:
-        return json.load(f)
-
-
-def _load_auth_keywords(path: str | None = None) -> list:
-    """加载 auth_keywords.json。"""
-    with open(path or _data_path("auth_keywords.json")) as f:
-        return json.load(f)
+from autoi_mcp.data.loader import data_path, load_sinks, load_auth_keywords
 
 # ============================================================
 # RiskScorer
@@ -67,11 +53,11 @@ class RiskScorer:
             auth_keywords: auth 关键词列表，None 自动加载
             skip_patterns: 系统库路径 glob pattern，匹配到的跳过评分
         """
-        with open(weights_path or _data_path("risk_weights.json")) as f:
+        with open(weights_path or data_path("risk_weights.json")) as f:
             self.weights = json.load(f)
 
-        self.sinks = sinks_dict if sinks_dict is not None else _load_sinks()
-        self.auth_keywords = auth_keywords if auth_keywords is not None else _load_auth_keywords()
+        self.sinks = sinks_dict if sinks_dict is not None else load_sinks()
+        self.auth_keywords = auth_keywords if auth_keywords is not None else load_auth_keywords()
         self.thresholds = self.weights.get("thresholds", {"high": 50, "medium": 30})
         self.skip_patterns = skip_patterns or ()
 
