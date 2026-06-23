@@ -6,7 +6,7 @@
 from autoi_mcp import config
 from autoi_mcp.analysis.risk import RiskScorer
 from autoi_mcp.scanner.elf import scan_directory
-from autoi_mcp.ida.ruuner import run_triage, run_triage_batch
+from autoi_mcp.ida.runner import run_triage, run_triage_batch
 
 
 def register(mcp):

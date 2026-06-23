@@ -1,8 +1,8 @@
 {
     "_comment": "autoi-mcp 运行配置 — IDA 路径、并发控制等。",
     "ida": {
-        "path": null,
-        "_path_help": "IDA 安装路径，null 则自动探测 (idat64/idat/ida64/ida)",
+        "path": "/opt/ida-pro/idat",
+        "_path_help": "IDA headless 可执行路径 (idat/idat64)，留空则自动探测；不支持 GUI 版 ida/ida64",
         "timeout": 300,
         "_timeout_help": "单个文件 IDA 分析超时（秒）"
     },
