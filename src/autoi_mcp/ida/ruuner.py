@@ -29,8 +29,10 @@ from autoi_mcp.data.loader import load_sinks, load_sources, data_path
 # ============================================
 # IDA 路径自动探测
 # ============================================
+# 仅 headless 文本模式可执行文件（idat/idat64）；
+# GUI 版 ida/ida64 在 -A 模式下仍可能弹窗卡住，不可用于自动化分析。
 _IDA_CANDIDATES: list[str] = [
-    "ida", "ida64", "idat", "idat64"
+    "idat64", "idat"
 ]
 
 _IDA_COMMON_DIRS: list[str] = [
@@ -46,8 +48,10 @@ def _find_ida_binary() -> str|None:
     """
     按照如下优先级自动探测 IDA headless 可执行文件路径：
         1. 从 config.json 中读取已经持久化的路径
-        2. 从 PATH 中搜索 ida | ida64 | idat | idat64
-        3. 从常见安装目录中搜索 idat | ida64
+        2. 从 PATH 中搜索 idat64 | idat
+        3. 从常见安装目录中搜索 idat64 | idat
+
+    注意：只探测 headless 文本模式（idat/idat64），不使用 GUI 版 ida/ida64。
 
     Returns:
         可执行程序的绝对路径，如果找不到返回 None
@@ -92,8 +96,9 @@ def detect_and_persist_ida_path() -> str:
 
     if not path:
         raise FileNotFoundError(
-            "未找到 IDA 安装。请在 config.json 中手动设置 ida.path, "
-            "或确保 idat64 / idat / ida64 / ida 在 PATH 中"
+            "未找到 IDA headless 安装。请在 config.json 中手动设置 ida.path "
+            "指向 idat / idat64，或确保 idat64 / idat 在 PATH 中"
+            "（不支持 GUI 版 ida / ida64）。"
             f"已经搜索：PATH + {_IDA_COMMON_DIRS}"
         )
 
