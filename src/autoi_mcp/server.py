@@ -12,11 +12,12 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("autoi-mcp")
 
-from autoi_mcp.tools import info, verify, triage
+from autoi_mcp.tools import info, verify, triage, web
 
 info.register(mcp)
 verify.register(mcp)
 triage.register(mcp)
+web.register(mcp)
 
 
 def main():
