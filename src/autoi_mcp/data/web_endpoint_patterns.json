@@ -1,0 +1,13 @@
+{
+  "_comment": "前端 endpoint 提取规则。每条 regex 的第 1 个捕获组必须是 URL。method/ref_type 用于标注来源。",
+  "patterns": [
+    {"name": "form_action",   "regex": "action\\s*=\\s*[\"']([^\"'#?\\s][^\"']*)[\"']", "method": "POST",    "ref_type": "form_action"},
+    {"name": "ajax_post",     "regex": "\\$\\.post\\s*\\(\\s*[\"']([^\"']+)[\"']",        "method": "POST",    "ref_type": "ajax_post"},
+    {"name": "ajax_getjson",  "regex": "\\$\\.getJSON\\s*\\(\\s*[\"']([^\"']+)[\"']",     "method": "GET",     "ref_type": "ajax_getjson"},
+    {"name": "ajax_get",      "regex": "\\$\\.get\\s*\\(\\s*[\"']([^\"']+)[\"']",         "method": "GET",     "ref_type": "ajax_get"},
+    {"name": "getjson_custom","regex": "getJson\\s*\\(\\s*[\"']([^\"']+)[\"']",           "method": "GET",     "ref_type": "ajax"},
+    {"name": "ajax_url",      "regex": "url\\s*:\\s*[\"']([^\"']+)[\"']",                 "method": "UNKNOWN", "ref_type": "ajax"}
+  ],
+  "param_attr_regex": "<(?:input|select|textarea)\\b[^>]*\\bname\\s*=\\s*[\"']([^\"']+)[\"']",
+  "url_keep_markers": ["goform", "cgi-bin", "cgi", ".cgi", ".asp", ".cgi?"]
+}

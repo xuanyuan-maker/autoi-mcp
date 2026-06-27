@@ -1,0 +1,10 @@
+{
+  "_comment": "endpoint↔binary 关联用关键词。endpoint_markers 标记 URL 是否为后端路由；handler_prefixes 用于从符号名反推 handler。",
+  "endpoint_markers": ["goform", "cgi-bin", "cgi", ".cgi", ".asp"],
+  "handler_prefixes": [
+    "form", "cgi_", "handle_", "do_", "goform_", "websSet", "websGet",
+    "websForm", "Set", "Get", "R_", "ej_"
+  ],
+  "html_extensions": [".html", ".htm", ".asp", ".js"],
+  "js_extensions": [".js"]
+}

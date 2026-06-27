@@ -1,0 +1,23 @@
+{
+  "server_binaries": [
+    "httpd", "lighttpd", "boa", "goahead", "uhttpd", "mini_httpd",
+    "thttpd", "nginx", "webs", "appweb", "alphapd", "micro_httpd"
+  ],
+  "config_filenames": [
+    "httpd.conf", "lighttpd.conf", "boa.conf", "goahead.conf",
+    "uhttpd.conf", "mini_httpd.conf", "thttpd.conf", "nginx.conf",
+    "boa/boa.conf", "webs.conf"
+  ],
+  "webroot_globs": [
+    "webroot*", "www", "htdocs", "web", "html", "wwwroot", "web_server", "wwwpub"
+  ],
+  "init_script_globs": [
+    "*/init.d/rcS", "*/init.d/*", "*/rcS", "*/rc.local", "*/etc/inittab"
+  ],
+  "doc_root_keys": [
+    "DocumentRoot", "server.document-root", "DocumentRoot", "root", "webroot", "-h", "-d"
+  ],
+  "port_keys": [
+    "Listen", "server.port", "Port", "-p"
+  ]
+}
