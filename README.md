@@ -1,9 +1,12 @@
 # autoi-mcp
 
+![version](https://img.shields.io/badge/version-0.6.0-blue) ![license](https://img.shields.io/badge/license-MIT-green) ![python](https://img.shields.io/badge/python-%3E%3D3.12-blue)
+
 `autoi-mcp` 是一个基于 **Model Context Protocol (MCP)** 的 IoT 固件二进制自动化安全审计工具，通过 **两层分析管道** 快速定位漏洞：
 
 - **Tier 1 (秒级)**: 批量 ELF 扫描 + 风险评分，快速过滤高风险目标
 - **Tier 2 (分钟级)**: IDA headless 深度分析，source-to-sink 路径追踪 + 置信度分级
+- **Web 上下文**: 静态关联二进制风险与 Web 入口（server / endpoint / 参数 / 认证边界）
 
 ---
 
@@ -24,18 +27,40 @@
   - **中 (Medium)**: 跨一层函数调用
   - **低 (Low)**: 跨多层调用（可能误报）
 
+### Web 上下文关联（不需要 IDA）
+- ✅ Web server 识别（httpd / goahead / lighttpd 等）+ 配置/监听端口/CGI 路径解析
+- ✅ Endpoint、参数、认证边界静态提取
+- ✅ 二进制风险 ↔ Web 入口绑定（回答"哪个 URL/参数触发哪个风险"）
+- ✅ 纯静态解析，不访问真实设备、不发起网络请求
+
 ---
 
 ## 安装
 
-### 方式一：uvx（推荐，用于 Claude Code）
+### 方式一：Claude Code CLI（推荐）
 
-在 Claude Desktop 配置文件 `~/.claude/claude_desktop_config.json` 中添加：
+本项目已发布到 PyPI 并提供 `autoi-mcp` 命令入口，用 `uvx` 注册即可（自动拉取并运行，无需预先安装）。
+
+**推荐：命令行一键注册**
+
+```bash
+claude mcp add autoi-mcp -- uvx autoi-mcp
+```
+
+可选参数：
+
+- `-s user`：注册到用户级（对所有项目生效），默认 `local`（仅当前项目）。
+- `-s project`：写入项目根目录 `.mcp.json`，便于团队共享。
+
+**或：手动编辑配置文件**
+
+编辑 `~/.claude.json`（用户级）或项目根目录 `.mcp.json`（项目级），在 `mcpServers` 中加入以下配置：
 
 ```json
 {
   "mcpServers": {
     "autoi-mcp": {
+      "type": "stdio",
       "command": "uvx",
       "args": ["autoi-mcp"]
     }
@@ -43,28 +68,43 @@
 }
 ```
 
-重启 Claude Desktop，工具会自动加载。
-
-### 方式二：pip
+**注册后验证与管理**
 
 ```bash
-pip install autoi-mcp
+claude mcp list            # 查看已注册的 MCP server 及连接状态
+claude mcp get autoi-mcp   # 查看单个 server 配置
+claude mcp remove autoi-mcp
 ```
 
-然后配置 Claude Desktop：
+进入 `claude` 交互界面后，可用 `/mcp` 查看工具加载情况；工具会以 `scan_firmware`、`scan_web_context` 等名称自动可用。
+
+> 从源码开发调试时，可改用 `claude mcp add autoi-mcp -- uv run --directory /path/to/autoi-mcp autoi-mcp`。
+
+### 方式二：Claude Desktop
+
+在配置文件 `~/.claude/claude_desktop_config.json` 中添加，然后重启 Claude Desktop：
 
 ```json
 {
   "mcpServers": {
     "autoi-mcp": {
-      "command": "python",
-      "args": ["-m", "autoi_mcp.server"]
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["autoi-mcp"]
     }
   }
 }
 ```
 
-### 方式三：源码开发
+### 方式三：pip 安装
+
+```bash
+pip install autoi-mcp
+```
+
+配置同上，将 `command` 改为 `python`、`args` 改为 `["-m", "autoi_mcp.server"]` 即可。
+
+### 方式四：源码开发
 
 ```bash
 git clone <repo-url>
@@ -91,6 +131,12 @@ uv run python -m autoi_mcp.server
 | `triage_single_binary` | 单个 ELF 深度分析（source-to-sink 路径追踪） | 文件路径 |
 | `triage_batch` | 批量深度分析（并发，可控 max_workers） | 文件路径列表 |
 | `triage_firmware_top20` | 一键全自动：扫描 → 评分 → 深度分析 Top 20 | 固件目录 |
+
+### Web 上下文工具（无需 IDA）
+
+| 工具 | 说明 |
+|------|------|
+| `scan_web_context` | 扫描固件 Web 上下文：Web server、endpoint、参数、认证边界，并与二进制风险绑定 |
 
 ---
 
@@ -275,10 +321,13 @@ src/autoi_mcp/
 ├── server.py              # MCP 服务入口
 ├── config.py              # 配置加载（IDA路径、超时等）
 ├── tools/
-│   ├── info.py            # scan_firmware / check_elf
-│   └── triage.py          # triage_single_binary / triage_batch / triage_firmware_top20
+│   ├── info.py            # scan_firmware
+│   ├── verify.py          # check_elf
+│   ├── triage.py          # triage_single_binary / triage_batch / triage_firmware_top20
+│   └── web.py             # scan_web_context
 ├── scanner/
-│   └── elf.py             # ELF 解析、规则匹配、批量扫描
+│   ├── elf.py             # ELF 解析、规则匹配、批量扫描
+│   └── web.py             # Web 上下文扫描（server / endpoint / 参数）
 ├── analysis/
 │   └── risk.py            # 风险评分器
 ├── ida/
