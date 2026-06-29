@@ -4,7 +4,7 @@
 
 基于 **Model Context Protocol (MCP)** 的 IoT 固件二进制自动化安全审计工具。
 
-**参考文章**: [IoT 固件自动化审计 MCP Server 开发实践](https://mp.weixin.qq.com/s/5mKZ7D1qNoZ9BMDIlxnF6A)
+**参考文章**: [固件.二进制审计.claude+skils快速寻找可控点和定位漏洞点](https://mp.weixin.qq.com/s/5mKZ7D1qNoZ9BMDIlxnF6A)
 
 ## 核心特性
 
