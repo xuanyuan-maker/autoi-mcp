@@ -1,6 +1,7 @@
 """Phase 0 Web 上下文收集 — 扫描 Web server 配置、前端 endpoint、endpoint↔binary 关联。"""
 
 from autoi_mcp.scanner import web as web_scanner
+from autoi_mcp.output import write_stage_output
 
 
 def register(mcp):
@@ -10,6 +11,7 @@ def register(mcp):
         dirpath: str,
         verbose: bool = False,
         top_n: int = 50,
+        output_dir: str | None = None,
     ) -> dict:
         """扫描固件目录的 Web 上下文：Web server、endpoint、参数、疑似处理二进制。
 
@@ -63,20 +65,37 @@ def register(mcp):
         for b in report.bindings:
             conf_counts[b.confidence] = conf_counts.get(b.confidence, 0) + 1
 
-        result: dict = {
-            "web_summary": {
-                "firmware_dirpath": report.firmware_dirpath,
-                "servers": report.server_count,
-                "endpoints": report.endpoint_count,
-                "bindings": report.binding_count,
-                "total_html": report.total_html,
-                "total_js": report.total_js,
-                "ref_type_distribution": ref_type_counts,
-                "binding_confidence_distribution": conf_counts,
-                "total_errors": len(report.errors),
-            },
-            "servers": [_fmt_server(s) for s in report.servers],
+        web_summary = {
+            "firmware_dirpath": report.firmware_dirpath,
+            "servers": report.server_count,
+            "endpoints": report.endpoint_count,
+            "bindings": report.binding_count,
+            "total_html": report.total_html,
+            "total_js": report.total_js,
+            "ref_type_distribution": ref_type_counts,
+            "binding_confidence_distribution": conf_counts,
+            "total_errors": len(report.errors),
         }
+        servers_fmt = [_fmt_server(s) for s in report.servers]
+
+        # 传入 output_dir 时,全量明细落盘为 web_context.json
+        output_file = None
+        if output_dir:
+            full_payload = {
+                "web_summary": web_summary,
+                "servers": servers_fmt,
+                "endpoints": [_fmt_endpoint(e) for e in report.endpoints],
+                "bindings": [_fmt_binding(b) for b in report.bindings],
+                "errors": report.errors,
+            }
+            output_file = write_stage_output(output_dir, "web_context", full_payload)
+
+        result: dict = {
+            "web_summary": web_summary,
+            "servers": servers_fmt,
+        }
+        if output_file:
+            result["output_file"] = output_file
 
         if verbose:
             result["endpoints"] = [_fmt_endpoint(e) for e in report.endpoints]

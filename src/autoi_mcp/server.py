@@ -12,8 +12,9 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("autoi-mcp")
 
-from autoi_mcp.tools import info, verify, triage, web
+from autoi_mcp.tools import info, verify, triage, web, workspace
 
+workspace.register(mcp)
 info.register(mcp)
 verify.register(mcp)
 triage.register(mcp)

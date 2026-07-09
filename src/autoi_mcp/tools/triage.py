@@ -7,6 +7,7 @@ from autoi_mcp import config
 from autoi_mcp.analysis.risk import RiskScorer
 from autoi_mcp.scanner.elf import scan_directory
 from autoi_mcp.ida.runner import run_triage, run_triage_batch
+from autoi_mcp.output import write_stage_output
 
 
 def register(mcp):
@@ -75,6 +76,7 @@ def register(mcp):
         firmware_dirpath: str,
         recursive: bool = True,
         max_workers_tier2: int | None = None,
+        output_dir: str | None = None,
     ) -> dict:
         """一键深度分析：Tier 1 扫描 → 高风险过滤 → Tier 2 IDA 分析（Top 20）。
 
@@ -153,7 +155,7 @@ def register(mcp):
             if r.error is None
         )
 
-        return {
+        result = {
             "tier1_summary": {
                 "total_scanned": elf_summary.total_scanned,
                 "total_elf": elf_summary.total_elf,
@@ -169,3 +171,11 @@ def register(mcp):
                 "high_confidence_paths": high_confidence_paths,
             },
         }
+
+        # 传入 output_dir 时,全量结果落盘为 tier2_triage.json
+        if output_dir:
+            result["output_file"] = write_stage_output(
+                output_dir, "tier2_triage", result
+            )
+
+        return result

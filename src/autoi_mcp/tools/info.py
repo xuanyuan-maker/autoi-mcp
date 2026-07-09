@@ -3,6 +3,7 @@
 from autoi_mcp import config
 from autoi_mcp.analysis.risk import RiskScorer
 from autoi_mcp.scanner.elf import scan_directory
+from autoi_mcp.output import write_stage_output
 
 
 def register(mcp):
@@ -14,6 +15,7 @@ def register(mcp):
         max_workers: int = config.get_max_workers(),
         verbose: bool = False,
         top_n: int = 20,
+        output_dir: str | None = None,
     ) -> dict:
         """扫描固件目录下所有 ELF，解析 + 规则匹配 + 风险评分。
 
@@ -61,22 +63,42 @@ def register(mcp):
             }
 
         # 3. 构建返回结果
-        result: dict = {
-            "scan_summary": {
-                "total_scanned": summary.total_scanned,
-                "total_elf": summary.total_elf,
-                "skipped_system_libs": summary.skipped_system,
-                "total_errors": len(summary.errors),
-            },
-            "risk_summary": {
-                "total": batch.total,
-                "high_risk": batch.high_risk_count,
-                "medium_risk": batch.medium_risk_count,
-                "low_risk": batch.low_risk_count,
-                "no_symbols": batch.no_symbols_count,
-                "_no_symbols_hint": "Symbol table stripped — Tier 2 IDA deep analysis recommended.",
-            },
+        scan_summary = {
+            "total_scanned": summary.total_scanned,
+            "total_elf": summary.total_elf,
+            "skipped_system_libs": summary.skipped_system,
+            "total_errors": len(summary.errors),
         }
+        risk_summary = {
+            "total": batch.total,
+            "high_risk": batch.high_risk_count,
+            "medium_risk": batch.medium_risk_count,
+            "low_risk": batch.low_risk_count,
+            "no_symbols": batch.no_symbols_count,
+            "_no_symbols_hint": "Symbol table stripped — Tier 2 IDA deep analysis recommended.",
+        }
+
+        # 3a. 传入 output_dir 时,全量明细落盘为 tier1_scan.json
+        output_file = None
+        if output_dir:
+            full_payload = {
+                "scan_summary": scan_summary,
+                "risk_summary": risk_summary,
+                "high_risk": [_fmt(r) for r in batch.high_risk],
+                "medium_risk": [_fmt(r) for r in batch.medium_risk],
+                "low_risk": [_fmt(r) for r in batch.low_risk],
+                "no_symbols": [_fmt(r) for r in batch.no_symbols_risk],
+                "errors": summary.errors,
+            }
+            output_file = write_stage_output(output_dir, "tier1_scan", full_payload)
+
+        # 3b. 精简响应
+        result: dict = {
+            "scan_summary": scan_summary,
+            "risk_summary": risk_summary,
+        }
+        if output_file:
+            result["output_file"] = output_file
 
         if verbose:
             result["high_risk"] = [_fmt(r) for r in batch.high_risk]
